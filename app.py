@@ -17,6 +17,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import json
 
 # Import project modules
 from data_loader import fetch_stock_data, get_stock_info
@@ -161,6 +162,35 @@ st.markdown("""
         border-radius: 10px 10px 0 0;
         padding: 10px 24px;
     }
+    
+    /* ── Primary run analysis button styling ────────── */
+    div[data-testid="stSidebar"] div.stButton > button {
+        font-weight: 600;
+    }
+    
+    /* ── Landing page buttons styling ───────────────── */
+    .landing-btn-container div.stButton > button {
+        background: #1A1D29;
+        border: 1px solid #2A2D3A;
+        border-radius: 12px;
+        padding: 24px 20px;
+        color: #FAFAFA;
+        font-size: 1.1rem;
+        font-weight: 500;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: all 0.2s ease;
+    }
+    .landing-btn-container div.stButton > button:hover {
+        border-color: #6C63FF;
+        background: #252836;
+        box-shadow: 0 8px 30px rgba(108, 99, 255, 0.15);
+        color: #fff;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -181,17 +211,21 @@ with st.sidebar:
     st.markdown("### ⚙️ Configuration")
     st.markdown("---")
 
-    # Preset ticker suggestions
-    preset_tickers = {
-        "Reliance Industries": "RELIANCE.NS",
-        "TCS": "TCS.NS",
-        "Infosys": "INFY.NS",
-        "HDFC Bank": "HDFCBANK.NS",
-        "Apple": "AAPL",
-        "Microsoft": "MSFT",
-        "Google": "GOOGL",
-        "Tesla": "TSLA",
-    }
+    # Load preset ticker suggestions
+    try:
+        with open("comprehensive_tickers.json", "r") as f:
+            preset_tickers = json.load(f)
+    except Exception:
+        # Fallback
+        preset_tickers = {
+            "NIFTY 50 (Index)": "^NSEI",
+            "BSE SENSEX (Index)": "^BSESN",
+            "Reliance Industries": "RELIANCE.NS",
+            "TCS": "TCS.NS",
+            "Gold (COMEX)": "GC=F",
+            "Apple": "AAPL",
+            "Crude Oil": "CL=F"
+        }
 
     # Quick-select from presets
     st.markdown("**Quick Select**")
@@ -248,11 +282,12 @@ with st.sidebar:
     st.markdown("---")
 
     # Run button
-    run_analysis = st.button(
+    if st.button(
         "🚀 Run Analysis",
         type="primary",
         use_container_width=True,
-    )
+    ):
+        st.session_state.run_dashboard = True
 
     st.markdown("---")
     st.markdown(
@@ -268,7 +303,7 @@ with st.sidebar:
 # Main Analysis Flow
 # ──────────────────────────────────────────────────────────────────────────────
 
-if run_analysis:
+if st.session_state.get('run_dashboard', False):
     ticker = ticker_input.strip().upper()
 
     if not ticker:
@@ -560,31 +595,29 @@ else:
                 <div style="font-size: 4rem; margin-bottom: 16px;">📊</div>
                 <h3 style="color: #FAFAFA; margin-bottom: 12px;">Welcome to the Stock Analysis Dashboard</h3>
                 <p style="color: #888; font-size: 1rem; max-width: 500px; margin: 0 auto 30px auto;">
-                    Enter a stock ticker in the sidebar, select your date range,
-                    and click <strong style="color: #6C63FF;">Run Analysis</strong> to get started.
+                    Select a stock (or index/commodity) in the sidebar, choose your dates,
+                    and click <strong style="color: #6C63FF;">Run Analysis</strong> to get started. You can also click below to begin with the defaults.
                 </p>
-                <div style="display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-top: 30px;">
-                    <div style="background: #1A1D29; border: 1px solid #2A2D3A; border-radius: 12px; padding: 20px; width: 140px;">
-                        <div style="font-size: 1.5rem; margin-bottom: 8px;">📈</div>
-                        <div style="color: #AAA; font-size: 0.8rem;">Price Charts</div>
-                    </div>
-                    <div style="background: #1A1D29; border: 1px solid #2A2D3A; border-radius: 12px; padding: 20px; width: 140px;">
-                        <div style="font-size: 1.5rem; margin-bottom: 8px;">📊</div>
-                        <div style="color: #AAA; font-size: 0.8rem;">Indicators</div>
-                    </div>
-                    <div style="background: #1A1D29; border: 1px solid #2A2D3A; border-radius: 12px; padding: 20px; width: 140px;">
-                        <div style="font-size: 1.5rem; margin-bottom: 8px;">🤖</div>
-                        <div style="color: #AAA; font-size: 0.8rem;">ML Prediction</div>
-                    </div>
-                    <div style="background: #1A1D29; border: 1px solid #2A2D3A; border-radius: 12px; padding: 20px; width: 140px;">
-                        <div style="font-size: 1.5rem; margin-bottom: 8px;">🔮</div>
-                        <div style="color: #AAA; font-size: 0.8rem;">Forecast</div>
-                    </div>
-                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+        st.markdown('<div class="landing-btn-container">', unsafe_allow_html=True)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            btn1 = st.button("📈\nPrice Charts", use_container_width=True)
+        with col2:
+            btn2 = st.button("📊\nIndicators", use_container_width=True)
+        with col3:
+            btn3 = st.button("🤖\nML Prediction", use_container_width=True)
+        with col4:
+            btn4 = st.button("🔮\nForecast", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if btn1 or btn2 or btn3 or btn4:
+            st.session_state.run_dashboard = True
+            st.rerun()
 
     # Popular tickers guide
     st.markdown("---")
