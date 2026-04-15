@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 import json
 
 # Import project modules
-from data_loader import fetch_stock_data, get_stock_info
+from data_loader import fetch_stock_data, get_stock_info, get_exchange_rate
 from indicators import add_all_indicators
 from model import prepare_features, train_model, get_feature_importance, forecast_future, generate_suggestion
 from utils import (
@@ -34,6 +34,7 @@ from utils import (
     plot_feature_importance,
     format_large_number,
     COLORS,
+    CURRENCY_SYMBOLS,
 )
 
 
@@ -202,12 +203,18 @@ st.markdown("""
 st.markdown('<h1 class="main-header">📈 Stock Market Prediction & Analysis</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">AI-powered stock analysis with real-time data, technical indicators, and ML predictions</p>', unsafe_allow_html=True)
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Sidebar — User Inputs
 # ──────────────────────────────────────────────────────────────────────────────
 
+if 'run_dashboard' not in st.session_state:
+    st.session_state.run_dashboard = False
+
 with st.sidebar:
+    if st.button("🏠 Home", use_container_width=True):
+        st.session_state.run_dashboard = False
+        st.rerun()
+
     st.markdown("### ⚙️ Configuration")
     st.markdown("---")
 
@@ -226,6 +233,15 @@ with st.sidebar:
             "Apple": "AAPL",
             "Crude Oil": "CL=F"
         }
+
+    # Currency Selection
+    st.markdown("**💱 Display Currency**")
+    target_currency = st.selectbox(
+        "Select Currency",
+        options=["INR", "USD", "EUR", "GBP", "JPY"],
+        index=0,
+        help="All prices will be converted to this currency using live rates."
+    )
 
     # Quick-select from presets
     st.markdown("**Quick Select**")
@@ -323,6 +339,17 @@ if st.session_state.get('run_dashboard', False):
             st.error(f"❌ {str(e)}")
             st.stop()
 
+    # ── Currency Conversion ────────────────────────────────────────────────
+    base_currency = stock_info.get("currency", "USD")
+    conv_rate = get_exchange_rate(base_currency, target_currency)
+    curr_sym = CURRENCY_SYMBOLS.get(target_currency, "")
+
+    if conv_rate != 1.0:
+        df["Open"] *= conv_rate
+        df["High"] *= conv_rate
+        df["Low"] *= conv_rate
+        df["Close"] *= conv_rate
+
     # ── Stock Info Cards ────────────────────────────────────────────────────
     st.markdown(f"### 🏢 {stock_info.get('name', ticker)}")
 
@@ -331,7 +358,7 @@ if st.session_state.get('run_dashboard', False):
         ("Sector", stock_info.get("sector", "N/A")),
         ("Industry", stock_info.get("industry", "N/A")),
         ("Currency", stock_info.get("currency", "N/A")),
-        ("Market Cap", format_large_number(stock_info.get("market_cap", "N/A"))),
+        ("Market Cap", format_large_number(stock_info.get("market_cap", "N/A") * (conv_rate if stock_info.get("market_cap") != "N/A" else 1), curr_sym)),
         ("P/E Ratio", f"{stock_info.get('pe_ratio', 'N/A')}"),
     ]
     for col, (label, value) in zip(info_cols, info_items):
@@ -369,10 +396,10 @@ if st.session_state.get('run_dashboard', False):
 
     price_cols = st.columns(4)
     price_items = [
-        ("Current Price", f"{close_val:.2f}", ""),
+        ("Current Price", f"{curr_sym}{close_val:.2f}", ""),
         ("Day Change", f"{price_change:+.2f}", f"({price_change_pct:+.2f}%)"),
-        ("Day High", f"{high_val:.2f}", ""),
-        ("Day Low", f"{low_val:.2f}", ""),
+        ("Day High", f"{curr_sym}{high_val:.2f}", ""),
+        ("Day Low", f"{curr_sym}{low_val:.2f}", ""),
     ]
     for col, (label, value, extra) in zip(price_cols, price_items):
         with col:
@@ -548,7 +575,7 @@ if st.session_state.get('run_dashboard', False):
     with st.expander("📋 Forecast Details", expanded=True):
         display_forecast = forecast_df.copy()
         display_forecast.index = display_forecast.index.strftime("%Y-%m-%d (%A)")
-        display_forecast.columns = ["Predicted Close Price"]
+        display_forecast.columns = [f"Predicted Close ({target_currency})"]
         st.dataframe(
             display_forecast.style.format("{:.2f}"),
             use_container_width=True,
@@ -582,42 +609,46 @@ if st.session_state.get('run_dashboard', False):
     )
 
 else:
-    # ── Landing state (before user clicks "Run Analysis") ───────────────────
-    st.markdown("")
-    st.markdown("")
+    # ── Enhanced Market Overview Landing Page ───────────────────────────────
+    st.markdown("### 🌍 Global Market Overview")
+    
+    major_tickers = {
+        "NIFTY 50": "^NSEI",
+        "SENSEX": "^BSESN",
+        "GOLD": "GC=F",
+        "SILVER": "SI=F",
+        "CRUDE OIL": "CL=F"
+    }
+    
+    m_cols = st.columns(len(major_tickers))
+    for col, (name, t_code) in zip(m_cols, major_tickers.items()):
+        with col:
+            try:
+                m_data = fetch_stock_data(t_code, (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d'), datetime.now().strftime('%Y-%m-%d'))
+                # Convert if not already in target currency (yfinance commodities are USD)
+                m_info = get_stock_info(t_code)
+                m_rate = get_exchange_rate(m_info.get("currency", "USD"), target_currency)
+                m_sym = CURRENCY_SYMBOLS.get(target_currency, "")
+                
+                latest_p = m_data["Close"].iloc[-1] * m_rate
+                prev_p = m_data["Close"].iloc[-2] * m_rate
+                delta_p = ((latest_p - prev_p) / prev_p) * 100
+                
+                st.metric(label=name, value=f"{m_sym}{latest_p:,.2f}", delta=f"{delta_p:.2f}%")
+                # Small sparkline
+                st.sparkline(m_data["Close"].tail(7).values)
+            except:
+                st.error(f"Error loading {name}")
 
-    # Show a welcoming landing section
-    landing_cols = st.columns([1, 2, 1])
-    with landing_cols[1]:
-        st.markdown(
-            """
-            <div style="text-align: center; padding: 60px 20px;">
-                <div style="font-size: 4rem; margin-bottom: 16px;">📊</div>
-                <h3 style="color: #FAFAFA; margin-bottom: 12px;">Welcome to the Stock Analysis Dashboard</h3>
-                <p style="color: #888; font-size: 1rem; max-width: 500px; margin: 0 auto 30px auto;">
-                    Select a stock (or index/commodity) in the sidebar, choose your dates,
-                    and click <strong style="color: #6C63FF;">Run Analysis</strong> to get started. You can also click below to begin with the defaults.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        st.markdown('<div class="landing-btn-container">', unsafe_allow_html=True)
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            btn1 = st.button("📈\nPrice Charts", use_container_width=True)
-        with col2:
-            btn2 = st.button("📊\nIndicators", use_container_width=True)
-        with col3:
-            btn3 = st.button("🤖\nML Prediction", use_container_width=True)
-        with col4:
-            btn4 = st.button("🔮\nForecast", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        if btn1 or btn2 or btn3 or btn4:
-            st.session_state.run_dashboard = True
-            st.rerun()
+    st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
+    
+    # Welcoming section
+    st.markdown("""
+        <div style="text-align: center; padding: 20px;">
+            <h2 style="color: #6C63FF;">Ready to Analyze?</h2>
+            <p>Select any asset from the sidebar to generate detailed ML predictions and forecasts.</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Popular tickers guide
     st.markdown("---")

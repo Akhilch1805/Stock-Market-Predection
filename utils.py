@@ -43,6 +43,13 @@ COLORS = {
     "forecast": "#FFD93D",      # Forecast line
 }
 
+CURRENCY_SYMBOLS = {
+    "INR": "₹",
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥"
+}
 
 # ---------------------------------------------------------------------------
 # Chart Layout Template
@@ -464,7 +471,7 @@ def plot_feature_importance(importance_df: pd.DataFrame, top_n: int = 10) -> go.
 # Formatting Helpers
 # ---------------------------------------------------------------------------
 
-def format_large_number(num) -> str:
+def format_large_number(num, symbol="") -> str:
     """
     Format large numbers into human-readable strings.
     Examples: 1,500,000 → '1.50M', 2,300,000,000 → '2.30B'
@@ -477,12 +484,12 @@ def format_large_number(num) -> str:
         return str(num)
 
     if abs(num) >= 1e12:
-        return f"{num / 1e12:.2f}T"
+        return f"{symbol}{num / 1e12:.2f}T"
     elif abs(num) >= 1e9:
-        return f"{num / 1e9:.2f}B"
+        return f"{symbol}{num / 1e9:.2f}B"
     elif abs(num) >= 1e6:
-        return f"{num / 1e6:.2f}M"
+        return f"{symbol}{num / 1e6:.2f}M"
     elif abs(num) >= 1e3:
-        return f"{num / 1e3:.2f}K"
+        return f"{symbol}{num / 1e3:.2f}K"
     else:
-        return f"{num:.2f}"
+        return f"{symbol}{num:.2f}"
