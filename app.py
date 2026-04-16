@@ -394,17 +394,20 @@ if st.session_state.get('run_dashboard', False):
 
     price_cols = st.columns(4)
     price_items = [
-        ("Current Price", f"{curr_sym}{close_val:,.2f}", ""),
-        ("Day Change", f"{price_change:+,.2f}", f"({price_change_pct:+.2f}%)"),
-        ("Day High", f"{curr_sym}{latest['High']:,.2f}", ""),
-        ("Day Low", f"{curr_sym}{latest['Low']:,.2f}", ""),
+        ("Current Price", f"{curr_sym}{close_val:,.2f}", "", None),
+        ("Day Change", f"{price_change:+,.2f}", f"({price_change_pct:+.2f}%)", price_change),
+        ("Day High", f"{curr_sym}{latest['High']:,.2f}", "", None),
+        ("Day Low", f"{curr_sym}{latest['Low']:,.2f}", "", None),
     ]
-    for col, (label, value, extra) in zip(price_cols, price_items):
+    for col, (label, value, extra, raw_val) in zip(price_cols, price_items):
         with col:
-            color = "#00C9A7" if "+" in value or float(value.replace("+", "").replace(",", "")) >= 0 else "#FF6B6B"
+            if label == "Day Change":
+                color = "#00C9A7" if raw_val >= 0 else "#FF6B6B"
+            else:
+                color = "#FAFAFA"
             st.markdown(
                 f'<div class="metric-card">'
-                f'<div class="metric-value" style="color:{color if label == "Day Change" else "#FAFAFA"}">{value} <span style="font-size:0.9rem;">{extra}</span></div>'
+                f'<div class="metric-value" style="color:{color}">{value} <span style="font-size:0.9rem;">{extra}</span></div>'
                 f'<div class="metric-label">{label}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -555,7 +558,7 @@ else:
 
     # Info grid
     g1, g2, g3, g4 = st.columns(4)
-    with g1: st.info("**NSE Stocks**<br>Add `.NS` suffix<br>Ex: `TCS.NS`", icon="🇮🇳")
-    with g2: st.info("**BSE Stocks**<br>Add `.BO` suffix<br>Ex: `RELIANCE.BO`", icon="🏛️")
-    with g3: st.info("**US Stocks**<br>Direct ticker<br>Ex: `NVDA`", icon="🇺🇸")
-    with g4: st.info("**Forex**<br>Use `=X` suffix<br>Ex: `EURUSD=X`", icon="💱")
+    with g1: st.info("**NSE Stocks**  \nAdd `.NS` suffix  \nEx: `TCS.NS`", icon="🇮🇳")
+    with g2: st.info("**BSE Stocks**  \nAdd `.BO` suffix  \nEx: `RELIANCE.BO`", icon="🏛️")
+    with g3: st.info("**US Stocks**  \nDirect ticker  \nEx: `NVDA`", icon="🇺🇸")
+    with g4: st.info("**Forex**  \nUse `=X` suffix  \nEx: `EURUSD=X`", icon="💱")

@@ -471,6 +471,15 @@ def plot_feature_importance(importance_df: pd.DataFrame, top_n: int = 10) -> go.
 # Sparkline (for Dashboard Cards)
 # ---------------------------------------------------------------------------
 
+def _hex_to_rgba(hex_color: str, alpha: float = 0.1) -> str:
+    """Convert a hex color string to rgba format with given alpha."""
+    hex_color = hex_color.lstrip("#")
+    if len(hex_color) == 6:
+        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+        return f"rgba({r},{g},{b},{alpha})"
+    return f"rgba(108,99,255,{alpha})"  # fallback
+
+
 def plot_mini_sparkline(data: pd.Series, color: str = COLORS["primary"]) -> go.Figure:
     """
     Create a minimal sparkline for display in small cards.
@@ -483,7 +492,7 @@ def plot_mini_sparkline(data: pd.Series, color: str = COLORS["primary"]) -> go.F
         mode="lines",
         line=dict(color=color, width=2),
         fill='tozeroy',
-        fillcolor=color.replace("rgb", "rgba").replace(")", ", 0.1)"), # Subtle fill
+        fillcolor=_hex_to_rgba(color, 0.1),
         hoverinfo='none'
     ))
     
