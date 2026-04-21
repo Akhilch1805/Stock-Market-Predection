@@ -112,6 +112,9 @@ def get_stock_info(ticker: str) -> dict:
         return {"name": ticker, "sector": "N/A", "industry": "N/A"}
 
 
+
+
+
 def get_exchange_rate(base_currency: str, target_currency: str) -> float:
     """
     Fetch the current exchange rate between two currencies.

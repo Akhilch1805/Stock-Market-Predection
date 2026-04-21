@@ -235,6 +235,8 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### ⚙️ Global Settings")
     
+
+    
     # Currency Selection (Global)
     target_currency = st.selectbox(
         "💱 Display Currency",
@@ -310,7 +312,6 @@ with st.sidebar:
     st.markdown(
         "<div style='text-align:center; color:#666; font-size:0.75rem;'>"
         "Built with ❤️ using Python, Streamlit & ML<br>"
-        "MCA Final Year Project"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -440,6 +441,7 @@ if st.session_state.get('run_dashboard', False):
     st.plotly_chart(plot_forecast(df, forecast_df, f"{forecast_days}-Day"), use_container_width=True)
 
     suggestion = generate_suggestion(df_with_indicators, forecast_df)
+    
     st.markdown(f'<div class="suggestion-card"><div class="suggestion-title">{suggestion["suggestion"]}</div>'
                 f'<div class="suggestion-confidence">Confidence: {suggestion["confidence"]:.0f}%</div>'
                 + "".join(f'<div class="reason-item">• {reason}</div>' for reason in suggestion["reasons"]) + "</div>", unsafe_allow_html=True)
