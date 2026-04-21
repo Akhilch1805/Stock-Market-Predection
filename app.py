@@ -274,24 +274,23 @@ with st.sidebar:
             "Crude Oil": "CL=F"
         }
 
-    # Quick-select from presets
+    # Unified Search Bar
     selected_preset = st.selectbox(
-        "Choose a popular stock",
-        options=["Custom"] + list(preset_tickers.keys()),
-        index=0,
+        "🔎 Search for a Stock",
+        options=["Enter custom ticker..."] + list(preset_tickers.keys()),
+        index=1,
+        help="Type a company name to instantly search from 2000+ stocks"
     )
 
-    # Ticker input
-    if selected_preset != "Custom":
+    # Ticker input resolution
+    if selected_preset == "Enter custom ticker...":
         ticker_input = st.text_input(
-            "📌 Stock Ticker Symbol",
-            value=preset_tickers[selected_preset],
+            "📌 Custom Yahoo Finance Ticker Symbol",
+            value="RELIANCE.NS",
+            help="E.g., TCS.NS for NSE, AAPL for US"
         )
     else:
-        ticker_input = st.text_input(
-            "📌 Stock Ticker Symbol",
-            value="RELIANCE.NS",
-        )
+        ticker_input = preset_tickers[selected_preset]
 
     # Date range selection
     st.markdown("**📅 Date Range**")
